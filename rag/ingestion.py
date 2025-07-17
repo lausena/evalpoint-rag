@@ -2,7 +2,9 @@ from langchain_experimental.text_splitter import SemanticChunker
 from langchain_openai import OpenAIEmbeddings
 from langchain.docstore.document import Document
 from langchain_community.vectorstores import FAISS
-from rag.datatype import DataType
+
+from rag.chunker import Chunker
+from rag.constants import DataType, ChunkingStrategy
 from PyPDF2 import PdfReader
 from rag.logger import logger
 
@@ -28,12 +30,6 @@ class Ingestion:
 
         self.data = text
 
-    def semantic_chunker(self):
-        chunker = SemanticChunker(self.embedding_model)
-        chunks = chunker.split_text(self.data)
-        documents = [Document(page_content=text, metadata={"id": str(i)}) for i, text in enumerate(chunks)]
-        return documents
-
     def build_vectorestore(self, documents):
         vectorstore = FAISS.from_documents(documents, self.embedding_model)
         vectorstore.save_local('faiss_index')
@@ -45,10 +41,16 @@ class Ingestion:
 
         if self.data:
             logger.info('Ingesting SemanticChunker...')
-            documents = self.semantic_chunker()
-            logger.info(f'Building vectorstore...')
-            self.build_vectorestore(documents)
 
+            documents = None
+            if self.chunking_strategy == ChunkingStrategy.SEMANTIC_CHUNKER.value:
+                chunker = Chunker(self.chunking_strategy, self.embedding_model, self.data)
+                documents = chunker.semantic_chunker()
+                logger.info(f'Building vectorstore...')
+            # else: TODO other chunking strategies need to be supported here
+
+            if documents:
+                self.build_vectorestore(documents)
         else:
             logger.error('Ingestion failed.')
 

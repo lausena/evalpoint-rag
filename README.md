@@ -4,7 +4,7 @@
 1. TBD - setup UV and python environment
 2. Navigate to [evalpoint-rag]() directory.
 4. Run the program as a module with real inputs:
-   5. `python -m rag 'Tell me something interesting about Neurodivergent Education'`
+   5. `python -m rag 'Tell me something interesting about the differences in Neurodivergent and Neurotypical Education'`
 
 #### RAG Usage:
 ```text
