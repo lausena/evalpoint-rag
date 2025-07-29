@@ -12,6 +12,10 @@ wheels/
 # Environments
 .env
 
+# Extra
+faiss_index
+
+
 # Logs
 logs
 
@@ -20,3 +24,4 @@ logs
 
 # Mac specific
 .DS_Store
+
