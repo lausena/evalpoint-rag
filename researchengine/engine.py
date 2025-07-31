@@ -1,4 +1,5 @@
 from researchengine.chains.assistant_instructions_chain import AssistantInstructionsChain
+from researchengine.chains.web_searches_chain import WebSearchesChain
 from researchengine.llm_utils import get_openai_llm
 from researchengine.web_utils import web_scrape, web_search
 from researchengine.llm_utils import get_openai_llm
@@ -9,29 +10,24 @@ import os
 
 _ = load_dotenv(find_dotenv())
 
-
-NUM_SEARCH_QUERIES = 2
 NUM_SEARCH_RESULTS_PER_QUERY = 2
 RESULT_TEXT_MAX_CHARS = 10_000
 
 def run(question):
-    logger.info(f'{question} .. End.')
-
     openai_key = SecretStr(os.environ['OPENAI_API_KEY'])
     llm = get_openai_llm(api_key=openai_key, model_name="gpt-4o-mini")
 
-    question = "What can I see and do in the Spanish town of Astorga?"
-
     # Assistant Instructions Chain
+    logger.info("Preparing assistant instructions...")
     assistant_instructions_chain = AssistantInstructionsChain(llm=llm)
     assistant_instructions = assistant_instructions_chain.invoke(question)
-    print(assistant_instructions)
-
-
+    # print(assistant_instructions)
 
     # Web Searches Chain
-
-
+    logger.info("Preparing web searches...")
+    web_searches_chain = WebSearchesChain(llm=llm)
+    web_searches = web_searches_chain.invoke(assistant_instructions)
+    print(web_searches)
 
 
 
