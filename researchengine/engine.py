@@ -1,13 +1,7 @@
+from researchengine.chains.assistant_instructions_chain import AssistantInstructionsChain
 from researchengine.llm_utils import get_openai_llm
 from researchengine.web_utils import web_scrape, web_search
 from researchengine.llm_utils import get_openai_llm
-from researchengine.utils import to_obj
-from researchengine.prompts import (
-    ASSISTANT_SELECTION_PROMPT_TEMPLATE,
-    WEB_SEARCH_PROMPT_TEMPLATE,
-    SUMMARY_PROMPT_TEMPLATE,
-    RESEARCH_REPORT_PROMPT_TEMPLATE
-)
 from dotenv import load_dotenv, find_dotenv
 from researchengine.logger import logger
 from pydantic import SecretStr
@@ -26,17 +20,23 @@ def run(question):
     openai_key = SecretStr(os.environ['OPENAI_API_KEY'])
     llm = get_openai_llm(api_key=openai_key, model_name="gpt-4o-mini")
 
-    # TODO just use the configs question
     question = "What can I see and do in the Spanish town of Astorga?"
 
-
     # Assistant Instructions Chain
-    assistant_instructions_chain = (
-        ASSISTANT_SELECTION_PROMPT_TEMPLATE | llm
-    )
-
+    assistant_instructions_chain = AssistantInstructionsChain(llm=llm)
     assistant_instructions = assistant_instructions_chain.invoke(question)
     print(assistant_instructions)
+
+
+
+    # Web Searches Chain
+
+
+
+
+
+
+
 
 
 
