@@ -1,36 +1,71 @@
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnableLambda
+
 from researchengine.chains.assistant_instructions_chain import AssistantInstructionsChain
+from researchengine.chains.search_and_summarization_chain import SearchAndSummarizationChain
+from researchengine.chains.search_result_and_summary_chain import SearchResultAndSummaryChain
+from researchengine.chains.search_results_chain import SearchResultsChain
 from researchengine.chains.web_searches_chain import WebSearchesChain
-from researchengine.llm_utils import get_openai_llm
-from researchengine.web_utils import web_scrape, web_search
 from researchengine.llm_utils import get_openai_llm
 from dotenv import load_dotenv, find_dotenv
 from researchengine.logger import logger
 from pydantic import SecretStr
 import os
 
+from researchengine.prompts import RESEARCH_REPORT_PROMPT_TEMPLATE
+from researchengine.utils import to_obj
+
 _ = load_dotenv(find_dotenv())
 
 NUM_SEARCH_RESULTS_PER_QUERY = 2
-RESULT_TEXT_MAX_CHARS = 10_000
 
 def run(question):
     openai_key = SecretStr(os.environ['OPENAI_API_KEY'])
     llm = get_openai_llm(api_key=openai_key, model_name="gpt-4o-mini")
 
-    # Assistant Instructions Chain
-    logger.info("Preparing assistant instructions...")
-    assistant_instructions_chain = AssistantInstructionsChain(llm=llm)
-    assistant_instructions = assistant_instructions_chain.invoke(question)
-    # print(assistant_instructions)
+    web_research_chain = (
+        AssistantInstructionsChain(llm=llm)
+        | WebSearchesChain(llm=llm)
+        | SearchAndSummarizationChain(llm=llm).map() # parallelize for each web search
+        | RunnableLambda(lambda x:
+                         {
+                             'research_summary': '\n\n'.join([i['summary'] for i in x]),
+                             'user_question': x[0]['user_question'] if len(x) > 0 else ''
+                         })
+        | RESEARCH_REPORT_PROMPT_TEMPLATE
+        | llm
+        | StrOutputParser()
+    )
 
-    # Web Searches Chain
-    logger.info("Preparing web searches...")
-    web_searches_chain = WebSearchesChain(llm=llm)
-    web_searches = web_searches_chain.invoke(assistant_instructions)
-    print(web_searches)
+    web_research_report = web_research_chain.invoke(question)
+    print(web_research_report)
 
 
 
+
+    # # # Search Results Chain
+    # logger.info("Preparing search results chain")
+    # search_results_chain = SearchResultsChain()
+    # result_urls_list = search_results_chain.invoke(web_searches)
+    # print(result_urls_list)
+
+    # # test chain invocation
+    # result_url_str = '{"result_url": "https://citiesandattractions.com/spain/astorga-spain-uncovering-the-jewels-of-a-hidden-spanish-gem/", "search_query": "Astorga Spain attractions", "user_question": "What can I see and do in the Spanish town of Astorga?"}'
+    # result_url_dict = to_obj(result_url_str)
+    #
+    # search_text_summary = SearchResultAndSummaryChain(llm=llm).invoke(result_url_dict)
+    # print(search_text_summary)
+
+
+
+
+
+
+    # web_search_str = '{"search_query": "Astorga Spain attractions", "user_question": "What can I see and do in the Spanish town of Astorga?"}'
+    # web_search_dict = to_obj(web_search_str)
+    # print(web_search_dict)
+    # result_urls_list = SearchResultsChain().invoke(web_search_dict)
+    # print(result_urls_list)
 
 
 
